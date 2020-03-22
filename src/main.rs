@@ -9,6 +9,9 @@ use piston::input::*;
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
 
+use std::collections::LinkedList;
+use std::iter::FromIterator;
+
 #[derive(Clone, PartialEq)]
 enum Direction {
     Right,
@@ -58,8 +61,7 @@ impl Game {
 }
 
 struct Snake {
-    pos_x: i32,
-    pos_y: i32,
+    body: LinkedList<(i32, i32)>,
     dir: Direction,
 }
 
@@ -69,25 +71,37 @@ impl Snake {
     let _brown: [f32; 4] = [0.424, 0.376, 0.380, 1.0];
     let red: [f32; 4] = [0.392, 0.251, 0.243, 1.0];
 
-    let square = graphics::rectangle::square(
-        (self.pos_x * 20) as f64, 
-        (self.pos_y * 20) as f64, 
-        20_f64);
+    let squares: Vec<graphics::types::Rectangle> = self.body
+        .iter()
+        .map(|&(x,y)| {
+            graphics::rectangle::square(
+                (x * 20) as f64, 
+                (y * 20) as f64, 
+                20_f64)
+        })
+        .collect();
+
 
     gl.draw(args.viewport(), |c, gl| {
         let transform = c.transform;
-
-        graphics::rectangle(red, square, transform, gl);
+        squares.into_iter()
+            .for_each(|square| graphics::rectangle(red, square, transform, gl)); 
     });
     }
 
     fn update (&mut self) {
+        let mut new_head = (*self.body.front().expect("Snake has no body")).clone();
+
         match self.dir {
-            Direction::Left => self.pos_x -= 1,
-            Direction::Right => self.pos_x += 1,
-            Direction::Up => self.pos_y -= 1,
-            Direction::Down => self.pos_y += 1,
+            Direction::Left => new_head.0 -= 1,
+            Direction::Right => new_head.0 += 1,
+            Direction::Up => new_head.1 -= 1,
+            Direction::Down => new_head.1 += 1,
         }
+
+        self.body.push_front(new_head);
+
+        self.body.pop_back().unwrap();
     }
 }
 fn main() {
@@ -103,7 +117,10 @@ fn main() {
 
         let mut game = Game {
             gl: GlGraphics::new(opengl),
-            snake: Snake { pos_x: 0, pos_y: 0, dir: Direction::Right },
+            snake: Snake { 
+                body: LinkedList::from_iter((vec![(0,0), (0,1)]).into_iter()), 
+                dir: Direction::Right 
+            },
         };
 
         let mut events = Events::new(EventSettings::new()).ups(8);
