@@ -9,7 +9,13 @@ use piston::input::*;
 use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, OpenGL};
 
-
+#[derive(Clone, PartialEq)]
+enum Direction {
+    Right,
+    Left,
+    Up,
+    Down
+}
 struct Game {
     gl: GlGraphics,
     snake: Snake,
@@ -17,29 +23,72 @@ struct Game {
 
 impl Game {
     fn render(&mut self, arg: &RenderArgs) {
-    use graphics;
 
 
-    let GREY: [f32; 4] = [0.788, 0.808, 0.741, 1.0];
-    let LIGHT_GREEN: [f32; 4] = [0.698, 0.737, 0.667, 1.0];
-    let GREEN: [f32; 4] = [0.514, 0.557, 0.514, 1.0];
-    let BROWN: [f32; 4] = [0.424, 0.376, 0.380, 1.0];
-    let RED: [f32; 4] = [0.392, 0.251, 0.243, 1.0];
-
+    let _grey: [f32; 4] = [0.788, 0.808, 0.741, 1.0];
+    let _light_green: [f32; 4] = [0.698, 0.737, 0.667, 1.0];
+    let green: [f32; 4] = [0.514, 0.557, 0.514, 1.0];
+    
     self.gl.draw(arg.viewport(), |_c, gl| {
-        graphics::clear(GREEN, gl);
+        graphics::clear(green, gl);
     });
+    
+    self.snake.render(&mut self.gl, arg);
+    }
 
+    fn update(&mut self) {
+        self.snake.update();
+    }
+
+    fn pressed(&mut self, btn: &Button) {
+        let last_direction = self.snake.dir.clone();
+
+        self.snake.dir = match btn {
+            &Button::Keyboard(Key::Up)
+                if last_direction != Direction::Down => Direction::Up,
+            &Button::Keyboard(Key::Down)
+                if last_direction != Direction::Up => Direction::Down,
+            &Button::Keyboard(Key::Left)
+                if last_direction != Direction::Right => Direction::Left,
+            &Button::Keyboard(Key::Right)
+                if last_direction != Direction::Left => Direction::Right,
+            _=> last_direction
+        };
     }
 }
 
 struct Snake {
     pos_x: i32,
     pos_y: i32,
+    dir: Direction,
 }
 
 impl Snake {
-    fn render(&self, gl: &mut GlGraphics, args: &RenderArgs)
+    fn render(&self, gl: &mut GlGraphics, args: &RenderArgs) {
+
+    let _brown: [f32; 4] = [0.424, 0.376, 0.380, 1.0];
+    let red: [f32; 4] = [0.392, 0.251, 0.243, 1.0];
+
+    let square = graphics::rectangle::square(
+        (self.pos_x * 20) as f64, 
+        (self.pos_y * 20) as f64, 
+        20_f64);
+
+    gl.draw(args.viewport(), |c, gl| {
+        let transform = c.transform;
+
+        graphics::rectangle(red, square, transform, gl);
+    });
+    }
+
+    fn update (&mut self) {
+        match self.dir {
+            Direction::Left => self.pos_x -= 1,
+            Direction::Right => self.pos_x += 1,
+            Direction::Up => self.pos_y -= 1,
+            Direction::Down => self.pos_y += 1,
+        }
+    }
 }
 fn main() {
     let opengl = OpenGL::V4_5;
@@ -53,14 +102,25 @@ fn main() {
         .unwrap();
 
         let mut game = Game {
-            gl: GlGraphics::new(opengl)
+            gl: GlGraphics::new(opengl),
+            snake: Snake { pos_x: 0, pos_y: 0, dir: Direction::Right },
         };
 
-        let mut events = Events::new(EventSettings::new());
-        while let Some(e) = events.next(&mut window) {
+        let mut events = Events::new(EventSettings::new()).ups(8);
+        while let Some(event) = events.next(&mut window) {
 
-            if let Some(r) = e.render_args() {
+            if let Some(r) = event.render_args() {
                 game.render(&r);
+            }
+
+            if let Some(_) = event.update_args() {
+                game.update();
+            }
+
+            if let Some(k) = event.button_args() {
+                if k.state == ButtonState::Press {
+                    game.pressed(&k.button);
+                }
             }
         }
 
