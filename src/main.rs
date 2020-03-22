@@ -23,6 +23,7 @@ enum Direction {
     Down
 }
 
+#[derive(Clone, Copy)]
 struct Size {
     width: u32,
     height: u32,
@@ -57,7 +58,7 @@ impl Game {
         
         let snake_head = (*self.snake.body.front().expect("Snake has no body")).clone();
         if (snake_head.0 == self.food.x) && (snake_head.1 == self.food.y) {
-            self.food.update();
+            self.food.update(self.size);
         }
     }
 
@@ -142,10 +143,11 @@ impl Food {
         });
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, size: Size) {
         // TODO make this not land on snake
-        self.x = rand::random::<u8>() as u32;
-        self.y = rand::random::<u8>() as u32;
+        let mut rng = rand::thread_rng();
+        self.x = rng.gen_range(0, size.width/20);
+        self.y = rng.gen_range(0, size.height/20);
     }
 }
 fn main() {
