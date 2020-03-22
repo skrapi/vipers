@@ -19,9 +19,11 @@ enum Direction {
     Up,
     Down
 }
+
 struct Game {
     gl: GlGraphics,
     snake: Snake,
+    food: Food,
 }
 
 impl Game {
@@ -37,6 +39,8 @@ impl Game {
     });
     
     self.snake.render(&mut self.gl, arg);
+
+    self.food.render(&mut self.gl, arg);
     }
 
     fn update(&mut self) {
@@ -104,6 +108,29 @@ impl Snake {
         self.body.pop_back().unwrap();
     }
 }
+
+struct Food {
+    x: i32,
+    y: i32,
+}
+
+impl Food {
+    fn render(&self, gl: &mut GlGraphics, args: &RenderArgs) {
+
+        let brown: [f32; 4] = [0.424, 0.376, 0.380, 1.0];
+    
+        let square = graphics::rectangle::square(
+                    (self.x * 20) as f64, 
+                    (self.y * 20) as f64, 
+                    20_f64);
+    
+        gl.draw(args.viewport(), |c, gl| {
+            let transform = c.transform;
+            
+            graphics::rectangle(brown, square, transform, gl); 
+        });
+        }
+}
 fn main() {
     let opengl = OpenGL::V4_5;
 
@@ -121,9 +148,14 @@ fn main() {
                 body: LinkedList::from_iter((vec![(0,0), (0,1)]).into_iter()), 
                 dir: Direction::Right 
             },
+            food: Food {
+                x: 5,
+                y: 5,
+            }
         };
 
         let mut events = Events::new(EventSettings::new()).ups(8);
+
         while let Some(event) = events.next(&mut window) {
 
             if let Some(r) = event.render_args() {
@@ -139,7 +171,9 @@ fn main() {
                     if k.button == Button::Keyboard(Key::Escape){
                         break;
                     }
-                    game.pressed(&k.button);
+                    else {
+                        game.pressed(&k.button);
+                    }
                 }
             }
         }
