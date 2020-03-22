@@ -109,7 +109,7 @@ fn main() {
 
     let mut window: GlutinWindow = WindowSettings::new(
         "Vipers",
-         [200, 200])
+         [640, 480])
         .graphics_api(opengl)
         .exit_on_esc(true)
         .build()
@@ -136,6 +136,9 @@ fn main() {
 
             if let Some(k) = event.button_args() {
                 if k.state == ButtonState::Press {
+                    if k.button == Button::Keyboard(Key::Escape){
+                        break;
+                    }
                     game.pressed(&k.button);
                 }
             }
